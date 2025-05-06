@@ -261,45 +261,60 @@
       document.getElementById("fileInput").value = "";
     }
 
-    function downloadPDF() {
-      if (!globalCashFlows.length || globalXIRR === null) {
-        alert("Please calculate XIRR first.");
-        return;
-      }
+ 
+      function downloadPDF() {
+         if (!globalCashFlows.length || globalXIRR === null) {
+         alert("Please calculate XIRR first.");
+         return;
+     }
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      const dateStr = new Date().toLocaleString();
+
+      const now = new Date();
+      const pad = num => String(num).padStart(2, '0');
+      const formattedDate = ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())};
+      const refNo = AFC-RER-${formattedDate};
+      const displayDate = now.toLocaleString();
 
       // Watermark
       doc.setTextColor(200);
       doc.setFontSize(40);
       doc.text("AFC-Finance", 35, 150, { angle: 45 });
 
-      // Title
-      doc.setFontSize(16);
-      doc.setTextColor(0);
-      doc.text("XIRR Report", 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Generated: ${dateStr}`, 14, 28);
+      // Header
+     doc.setTextColor(0);
+     doc.setFontSize(16);
+     doc.text("XIRR Report", 14, 20);
+     doc.setFontSize(10);
+     doc.text(Generated: ${displayDate}, 14, 28);
+     doc.text(Reference: ${refNo}, 14, 34);
 
-      // Table
-      const rows = globalCashFlows.map(cf => [
-        cf.date.toISOString().split('T')[0],
-        cf.amount.toFixed(2)
-      ]);
+      // Prepare Table
+     const rows = globalCashFlows.map(cf => [
+     cf.date.toISOString().split('T')[0],
+     cf.amount.toFixed(2)
+     ]);
 
-      doc.autoTable({
-        head: [["Date", "Cash Flow"]],
-        body: rows,
-        startY: 35
-      });
+     doc.autoTable({
+     head: [["Date", "Cash Flow"]],
+     body: rows,
+     startY: 40
+     });
 
-      // XIRR Result
-      doc.setFontSize(12);
-      doc.text(`XIRR: ${(globalXIRR * 100).toFixed(4)}%`, 14, doc.autoTable.previous.finalY + 15);
+     // Get key cashflow details
+    const investment = globalCashFlows[0];
+    const finalReceipt = globalCashFlows[globalCashFlows.length - 1];
 
-      doc.save("XIRR_Report.pdf");
+    const resultStartY = doc.autoTable.previous.finalY + 10;
+    doc.setFontSize(12);
+    doc.text(XIRR: ${(globalXIRR * 100).toFixed(4)}%, 14, resultStartY);
+    doc.text(Investment Date: ${investment.date.toISOString().split('T')[0]}, 14, resultStartY + 8);
+    doc.text(Investment Amount: ${investment.amount.toFixed(2)}, 14, resultStartY + 16);
+    doc.text(Final Receipt Date: ${finalReceipt.date.toISOString().split('T')[0]}, 14, resultStartY + 24);
+    doc.text(Final Receipt Amount: ${finalReceipt.amount.toFixed(2)}, 14, resultStartY + 32);
+
+    doc.save(${refNo}.pdf);
     }
 
     function downloadExcelWithCashFlows() {
