@@ -262,16 +262,44 @@
     }
 
     function downloadPDF() {
-      if (!globalCashFlows.length) return alert("Please calculate XIRR first.");
+      if (!globalCashFlows.length || globalXIRR === null) {
+        alert("Please calculate XIRR first.");
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.text("XIRR Calculation Report", 14, 15);
+      const dateStr = new Date().toLocaleString();
+
+      // Watermark
+      doc.setTextColor(200);
+      doc.setFontSize(40);
+      doc.text("AFC-Finance", 35, 150, { angle: 45 });
+
+      // Title
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("XIRR Report", 14, 20);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${dateStr}`, 14, 28);
+
+      // Table
+      const rows = globalCashFlows.map(cf => [
+        cf.date.toISOString().split('T')[0],
+        cf.amount.toFixed(2)
+      ]);
+
       doc.autoTable({
-        head: [["Date", "Amount"]],
-        body: globalCashFlows.map(cf => [cf.date.toISOString().split('T')[0], cf.amount.toFixed(2)])
+        head: [["Date", "Cash Flow"]],
+        body: rows,
+        startY: 35
       });
-      doc.text(`\nXIRR: ${(globalXIRR * 100).toFixed(2)}%`, 14, doc.autoTable.previous.finalY + 10);
-      doc.save("xirr_report.pdf");
+
+      // XIRR Result
+      doc.setFontSize(12);
+      doc.text(`XIRR: ${(globalXIRR * 100).toFixed(4)}%`, 14, doc.autoTable.previous.finalY + 15);
+
+      doc.save("XIRR_Report.pdf");
     }
 
     function downloadExcelWithCashFlows() {
