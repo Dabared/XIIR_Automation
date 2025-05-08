@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XIRR Calculator (Pure JS)</title>
+</head>
+<body>
+    <h2>XIRR Calculator (JavaScript only)</h2>
+
+    <form id="xirrForm">
+        <label>Investment Date:</label>
+        <input type="date" id="initial_date" required><br>
+
+        <label>Investment Amount:</label>
+        <input type="number" id="initial_amount" step="0.01" required><br>
+
+        <label>Final Receipt Date:</label>
+        <input type="date" id="final_date" required><br>
+
+        <label>Final Receipt Amount:</label>
+        <input type="number" id="final_amount" step="0.01" required><br>
+
+        <label>Upload .txt File:</label>
+        <input type="file" id="fileInput" accept=".txt" required><br><br>
+
+        <button type="submit">Calculate XIRR</button>
+    </form>
+
+    <h3 id="result"></h3>
+
+    <script>
+        function xirr(transactions) {
+            function xnpv(rate) {
+                return transactions.reduce((acc, val) => {
+                    const t = (val.date - transactions[0].date) / (1000 * 60 * 60 * 24) / 365;
+                    return acc + val.amount / Math.pow(1 + rate, t);
+                }, 0);
+            }
+
+            let guess = 0.1;
+            let tol = 1e-6;
+            let maxIter = 100;
+
+            for (let i = 0; i < maxIter; i++) {
+                const f = xnpv(guess);
+                const f1 = (xnpv(guess + tol) - f) / tol;
+
+                const newGuess = guess - f / f1;
+
+                if (Math.abs(newGuess - guess) < tol) return newGuess;
+                guess = newGuess;
+            }
+
+            return null;
+        }
+
+        document.getElementById("xirrForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const initialDate = new Date(document.getElementById("initial_date").value);
+            const initialAmount = parseFloat(document.getElementById("initial_amount").value);
+
+            const finalDate = new Date(document.getElementById("final_date").value);
+            const finalAmount = parseFloat(document.getElementById("final_amount").value);
+
+            const file = document.getElementById("fileInput").files[0];
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                const lines = reader.result.split("\n");
+                const pattern = /^\d{2}\/\d{2}\/\d{4}\s+\|/;
+                let transactions = [];
+
+                transactions.push({ date: initialDate, amount: initialAmount });
+                transactions.push({ date: finalDate, amount: finalAmount });
+
+                lines.forEach(line => {
+                    if (pattern.test(line)) {
+                        const parts = line.split('|');
+                        const date = new Date(parts[0].trim().split('/').reverse().join('-'));
+                        const debit = parseFloat(parts[6]?.replace(/,/g, '') || 0);
+                        const credit = parseFloat(parts[7]?.replace(/,/g, '') || 0);
+
+                        const amount = credit !== 0 ? credit : (debit !== 0 ? -debit : 0);
+                        if (amount !== 0) {
+                            transactions.push({ date, amount });
+                        }
+                    }
+                });
+
+                const result = xirr(transactions);
+                const resultText = result !== null ? `XIRR = ${(result * 100).toFixed(2)}%` : "XIRR calculation failed";
+
+                document.getElementById("result").innerText = resultText;
+            };
+
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>

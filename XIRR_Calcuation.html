@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XIRR Calculator</title>
+    <style>
+        body { font-family: Arial; padding: 30px; max-width: 500px; margin: auto; }
+        input, button { margin: 10px 0; width: 100%; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h2>XIRR Calculator</h2>
+    <form id="xirrForm">
+        <label>Initial Investment Date:</label>
+        <input type="date" name="initial_date" required>
+        
+        <label>Initial Investment Amount (e.g. -100000):</label>
+        <input type="number" step="0.01" name="initial_amount" required>
+        
+        <label>Final Settlement Date:</label>
+        <input type="date" name="final_date" required>
+        
+        <label>Final Settlement Amount:</label>
+        <input type="number" step="0.01" name="final_amount" required>
+        
+        <label>Upload Transaction File (.txt):</label>
+        <input type="file" name="file" accept=".txt" required>
+        
+        <button type="submit">Calculate XIRR</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('xirrForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/xirr', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById('result').innerText = result.xirr || result.error;
+        });
+    </script>
+</body>
+</html>
